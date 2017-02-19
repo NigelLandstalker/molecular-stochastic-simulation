@@ -88,6 +88,43 @@ def stochastic_sim(init_counts, reaction_descs, iterations, halt_on_low_reactant
 	else:
 		return counts
 
+def parse_reactions(reactions, counts={}): #Just to make things easier
+	#Reactions is a list of strings, each string corresponding to a reaction in the format: 02x1+03x2->01x2,k=1 where x is any alpha character
+	#Reactions must completely desribe the chemical system desired! The parser assigns unique values to each molecular element.
+	unique_molecules = {}
+	parsed_equations = []
+	for string in reactions:
+		k_value = int(string[len(string) - 1])
+		string = string[:(len(string) - 4)]
+		reactants = string.split('->')[0].split('+')
+		products = string.split('->')[1].split('+')
+
+		def gen_tuple(molecule_list):
+			tuple_ = ()
+			for m in molecule_list:
+				if m[2:] not in unique_molecules:
+					unique_molecules[m[2:]] = len(unique_molecules) #Assign new key value for a unique molecule
+				if len(tuple_) == 0:
+					tuple_ += (int(m[:2]), unique_molecules[m[2:]])
+				else:
+					tuple_ = (tuple_,) + ((int(m[:2]), unique_molecules[m[2:]]),)
+			return tuple_
+
+		parsed_equations.append(((gen_tuple(reactants)), (gen_tuple(products)), k_value))
+	print("Parsed Equations: %s" % parsed_equations)
+
+	if counts == {}:
+		return parsed_equations
+	else:
+		parsed_counts = [0 for _ in range(len(unique_molecules))]
+		for element in counts.keys():
+			if element in unique_molecules:
+				parsed_counts[unique_molecules[element]] = counts[element]
+			else:
+				print('Invalid molecule name in molecule counts')
+		return [parse_reactions, parsed_counts]
+		#Molecule count parsing happens here. Counts is a dict of keys with reactant names corresponding to the reactions above.
+
 def p1_a_analyze_outcome(init_counts, reaction_descs, trial_count, iteration_count, halt_on_low_reactants):
 	all_outcomes = [stochastic_sim(init_counts, reaction_descs, iteration_count, halt_on_low_reactants) for _ in range(trial_count)]
 
@@ -120,18 +157,20 @@ def p1_b_analyze_outcome(init_counts, reaction_descs, trial_count, iteration_cou
 	print("Searchspace Coverage: %s percent" % (sum(prob_dist.values()) * 100))
 	return prob_dist
 
-#Reactions for problem 1:
-r1 = (((2,0), (1,1)),(4, 2), 1)
-r2 = (((1,0), (2,2)),(3, 1), 2)
-r3 = (((1,1), (1,2)),(2, 0), 3)
-p1_descs = [r1, r2, r3]
-p1_a_counts = [5, 5, 5]
-#print(stochastic_sim(p1_counts, p1_descs, 1000))
-#p1_a_analyze_outcome(p1_a_counts, p1_descs, 10000, 1000, True)
+if __name__ == "__main__":
+	#Reactions for problem 1:
+	r1 = (((2,0), (1,1)),(4, 2), 1)
+	r2 = (((1,0), (2,2)),(3, 1), 2)
+	r3 = (((1,1), (1,2)),(2, 0), 3)
+	p1_descs = [r1, r2, r3]
+	p1_a_counts = [5, 5, 5]
+	#print(stochastic_sim(p1_counts, p1_descs, 1000))
+	#p1_a_analyze_outcome(p1_a_counts, p1_descs, 10000, 1000, True)
 
-p1_b_counts = [6, 6, 6]
-p1_b_analyze_outcome(p1_b_counts, p1_descs, 1000000, 5)
+	p1_b_counts = [6, 6, 6]
+	p1_b_analyze_outcome(p1_b_counts, p1_descs, 1000000, 5)
 
+#Part a:
 #Trial Results:
 #Organic simulation:
 #Command used: p1_a_analyze_outcome(p1_counts, p1_descs, number of trials, number of reactions per trial, True/False)
@@ -148,6 +187,20 @@ p1_b_analyze_outcome(p1_b_counts, p1_descs, 1000000, 5)
 #10000 Trials:
 #C1: 0.191, C2: 0.78, C3: 0.541
 
-#{'[9, 5, 5]': 0.09527239811349611, '[6, 9, 4]': 0.39955463479823056, '[13, 5, 0]': 0.0008974886503640765, '[1, 5, 15]': 0.004308255482897824, '[2, 9, 9]': 0.18325290571277889, '[0, 1, 21]': 7.807544039428096e-07, '[5, 5, 10]': 0.13499120346475102, '[16, 1, 1]': 3.873107321383183e-05, '[0, 17, 2]': 0.003281885587719334, '[4, 1, 16]': 0.0004894563339882729, '[12, 1, 6]': 0.0015374184639134947, '[3, 13, 3]': 0.17339259949008246, '[8, 1, 11]': 0.002981149841492497}
+#Part b:
+#Command used: p1_b_analyze_outcome(p1_b_counts, p1_descs, 1000000, 5)
+#{'[9, 5, 5]': 0.09527239811349611,
+#'[6, 9, 4]': 0.39955463479823056,
+#'[13, 5, 0]': 0.0008974886503640765,
+#'[1, 5, 15]': 0.004308255482897824,
+#'[2, 9, 9]': 0.18325290571277889,
+#'[0, 1, 21]': 7.807544039428096e-07,
+#'[5, 5, 10]': 0.13499120346475102,
+#'[16, 1, 1]': 3.873107321383183e-05,
+#'[0, 17, 2]': 0.003281885587719334,
+#'[4, 1, 16]': 0.0004894563339882729,
+#'[12, 1, 6]': 0.0015374184639134947,
+#'[3, 13, 3]': 0.17339259949008246,
+#'[8, 1, 11]': 0.002981149841492497}
 #Number of unique results: 13
 #Searchspace Coverage: 99.99989077673322 percent
