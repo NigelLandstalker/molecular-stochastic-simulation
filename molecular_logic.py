@@ -2,7 +2,8 @@
 #Uses reaction_simulation.py
 #Author: Owen Hoffend
 
-import reaction_simulation
+from reaction_simulation import parse_reactions
+from reaction_simulation import stochastic_sim
 
 def mux(iterations):
 	reactions = [
@@ -14,10 +15,19 @@ def mux(iterations):
 		'y': 10,
 		'S1': 10
 	}
-	sim_input = reaction_simulation.parse_reactions(reactions, counts)
+	sim_input = parse_reactions(reactions, counts)
 	print(sim_input)
-	output = reaction_simulation.stochastic_sim(sim_input[1], sim_input[0], iterations)
+	output = stochastic_sim(sim_input[1], sim_input[0], iterations)
+	return output
+
+def no_products(iterations):
+	reactions = ['01x->00y k=1']
+	counts = {'x': 100}
+
+	sim_input = parse_reactions(reactions, counts)
+	print(sim_input)
+	output = stochastic_sim(sim_input[1], sim_input[0], iterations)
 	return output
 
 if __name__ == "__main__":
-	print(mux(1000))
+	print(no_products(100))

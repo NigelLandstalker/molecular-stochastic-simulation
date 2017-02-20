@@ -6,7 +6,7 @@ import random
 from functools import reduce
 
 def k_choose_n(k, n):
-		return math.factorial(k) / (math.factorial(n) * math.factorial(k - n))
+	return math.factorial(k) / (math.factorial(n) * math.factorial(k - n))
 
 def reaction_probs(reactant_descs, counts, k_values): #Returns the probability of a reaction happening
 	#Reactant desc: tuple containing: ((r1 coefficient, r1 index), (r2 coefficient, r2 index), ..., (rn coefficient, rn index), k_value)
@@ -14,7 +14,10 @@ def reaction_probs(reactant_descs, counts, k_values): #Returns the probability o
 	alphas = []
 	for index, desc in enumerate(reactant_descs):
 		if can_fire(desc, counts):
-			alphas.append(k_values[index] * reduce(lambda x, y: x * y, [k_choose_n(counts[desc[index][1]], desc[index][0]) for index in range(len(desc))]))
+			if type(desc[0]) == tuple:
+				alphas.append(k_values[index] * reduce(lambda x, y: x * y, [k_choose_n(counts[desc[i][1]], desc[i][0]) for i in range(len(desc))]))
+			else:
+				alphas.append(k_values[index] * k_choose_n(counts[desc[1]], desc[0]))
 		else:
 			alphas.append(0)
 	if sum(alphas) == 0:
@@ -31,7 +34,7 @@ def p1_probs(counts): #For testing purposes: using the probability equations giv
 
 def can_fire(reactant_descs, counts): #Determines if a reaction can actually physically happen given the number of remaining molecules in the systen and the given reaction's chemical equation.
 	can_fire_ = True
-	if type(reactant_descs) == tuple:
+	if type(reactant_descs[0]) == tuple:
 		for reactant in reactant_descs:
 			if counts[reactant[1]] < reactant[0]:
 				can_fire_ = False
@@ -70,8 +73,11 @@ def stochastic_sim(init_counts, reaction_descs, iterations, halt_on_low_reactant
 		#print("Reaction of index %s fired" % fired_reaction_index)
 		fired_reactants = reactant_descs[fired_reaction_index]
 		fired_products = product_descs[fired_reaction_index]
-		for reactant in fired_reactants:
-			counts[reactant[1]] -= reactant[0]
+		if type(fired_reactants[0]) == tuple:
+			for reactant in fired_reactants:
+				counts[reactant[1]] -= reactant[0]
+		else:
+			counts[fired_reactants[1]] -= fired_reactants[0]
 
 		if type(fired_products[0]) == tuple:
 			for product in fired_products:
@@ -122,7 +128,7 @@ def parse_reactions(reactions, counts={}): #Just to make things easier
 				parsed_counts[unique_molecules[element]] = counts[element]
 			else:
 				print('Invalid molecule name in molecule counts')
-		return [parse_reactions, parsed_counts]
+		return [parsed_equations, parsed_counts]
 		#Molecule count parsing happens here. Counts is a dict of keys with reactant names corresponding to the reactions above.
 
 def p1_a_analyze_outcome(init_counts, reaction_descs, trial_count, iteration_count, halt_on_low_reactants):
