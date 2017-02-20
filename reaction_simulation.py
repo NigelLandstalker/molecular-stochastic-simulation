@@ -70,8 +70,9 @@ def stochastic_sim(init_counts, reaction_descs, iterations, halt_on_low_reactant
 			if rand <= prob_sum:
 				fired_reaction_index = index
 				break
+		#if fired_reaction_index < 4: #FIXME TESTING PURPOSES ONLY, REMOVE THIS
+			#print("Reaction of index %s fired" % fired_reaction_index)
 
-		#print("Reaction of index %s fired" % fired_reaction_index)
 		fired_reactants = reactant_descs[fired_reaction_index]
 		fired_products = product_descs[fired_reaction_index]
 		if type(fired_reactants[0]) == tuple:
@@ -97,7 +98,7 @@ def stochastic_sim(init_counts, reaction_descs, iterations, halt_on_low_reactant
 	else:
 		return counts
 
-def parse_reactions(reactions, counts={}): #Just to make things easier
+def parse_reactions(reactions, counts={}, return_unique_molecules=False): #Just to make things easier
 	#Reactions is a list of strings, each string corresponding to a reaction in the format: 02x1+03x2->01x2,k=1 where x is any alpha character
 	#Reactions must completely desribe the chemical system desired! The parser assigns unique values to each molecular element.
 	unique_molecules = {}
@@ -118,19 +119,22 @@ def parse_reactions(reactions, counts={}): #Just to make things easier
 			return tuple(x for x in list_of_tuples)
 
 		parsed_equations.append(((gen_tuple(reactants)), (gen_tuple(products)), k_value))
-	print("Parsed Equations: %s" % parsed_equations)
 
-	if counts == {}:
-		return parsed_equations
+	if return_unique_molecules:
+		return unique_molecules
 	else:
-		parsed_counts = [0 for _ in range(len(unique_molecules))]
-		for element in counts.keys():
-			if element in unique_molecules:
-				parsed_counts[unique_molecules[element]] = counts[element]
-			else:
-				print('Invalid molecule name in molecule counts')
-		return [parsed_equations, parsed_counts]
-		#Molecule count parsing happens here. Counts is a dict of keys with reactant names corresponding to the reactions above.
+		print("Parsed Equations: %s" % parsed_equations)
+		if counts == {}:
+			return parsed_equations
+		else:
+			parsed_counts = [0 for _ in range(len(unique_molecules))]
+			for element in counts.keys():
+				if element in unique_molecules:
+					parsed_counts[unique_molecules[element]] = counts[element]
+				else:
+					print('Invalid molecule name in molecule counts')
+			return [parsed_equations, parsed_counts]
+			#Molecule count parsing happens here. Counts is a dict of keys with reactant names corresponding to the reactions above.
 
 def p1_a_analyze_outcome(init_counts, reaction_descs, trial_count, iteration_count, halt_on_low_reactants):
 	all_outcomes = [stochastic_sim(init_counts, reaction_descs, iteration_count, halt_on_low_reactants) for _ in range(trial_count)]
