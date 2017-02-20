@@ -53,13 +53,14 @@ def stochastic_sim(init_counts, reaction_descs, iterations, halt_on_low_reactant
 		fired_probs = [] #Gives a list of the used
 		all_counts = []
 
-	for _ in range(iterations):
+	for i in range(iterations):
 		#if(0 in counts): break
 		#print("Molecule counts for iteration %s: %s" % (iteration, counts))
 		#probs = p1_probs(counts)
 		probs = reaction_probs(reactant_descs, counts, k_values) #Probs should actually be a list containing the reaction index for the reaction as well as the probability of it ocurring
 		#print("Reaction probs for iteration %s: %s" % (iteration, probs))
 		if probs == 'end' or halt_on_low_reactants and False in [can_fire(desc, counts) for desc in reactant_descs]:
+			print('Simulation finished after %s iterations' % i)
 			break
 
 		prob_sum = 0
@@ -88,6 +89,8 @@ def stochastic_sim(init_counts, reaction_descs, iterations, halt_on_low_reactant
 		if return_intermediary_steps:
 			all_counts.append(list(counts))
 			fired_probs.append(probs[fired_reaction_index])
+	else:
+		print("Simulation reached end of allowed iterations")
 
 	if return_intermediary_steps:
 		return (all_counts, fired_probs)
@@ -100,21 +103,19 @@ def parse_reactions(reactions, counts={}): #Just to make things easier
 	unique_molecules = {}
 	parsed_equations = []
 	for string in reactions:
-		k_value = int(string[len(string) - 1])
-		string = string[:(len(string) - 4)]
+		k_value = int(string.split(' ')[1][2:])
+		string = string.split(' ')[0]
+
 		reactants = string.split('->')[0].split('+')
 		products = string.split('->')[1].split('+')
 
 		def gen_tuple(molecule_list):
-			tuple_ = ()
+			list_of_tuples = []
 			for m in molecule_list:
 				if m[2:] not in unique_molecules:
 					unique_molecules[m[2:]] = len(unique_molecules) #Assign new key value for a unique molecule
-				if len(tuple_) == 0:
-					tuple_ += (int(m[:2]), unique_molecules[m[2:]])
-				else:
-					tuple_ = (tuple_,) + ((int(m[:2]), unique_molecules[m[2:]]),)
-			return tuple_
+				list_of_tuples.append((int(m[:2]), unique_molecules[m[2:]]))
+			return tuple(x for x in list_of_tuples)
 
 		parsed_equations.append(((gen_tuple(reactants)), (gen_tuple(products)), k_value))
 	print("Parsed Equations: %s" % parsed_equations)
