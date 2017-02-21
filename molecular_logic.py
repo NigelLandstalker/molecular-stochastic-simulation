@@ -136,21 +136,51 @@ p3_multiplication_counts = {
 }
 
 p4_gcd_reactions = [
+	"01x->01x1'+01x2 k=" + FAST,
+	"01y->01y1'+01y2 k=" + FAST,
+	"01y2+01x2->00o k=" + FAST,
 
+	#If y>x:
+	"01x_ab+01y1->00o k=" + FAST,
+	"01x_ab+01y2->01y3 k=" + FAST
 ]
 p4_gcd_counts = {
 
 }
 
-p4_collatz_reactions = [
+p4_collatz_reactions = abs_indicator('e') + abs_indicator('O') + abs_indicator('x') + abs_indicator('x1') + abs_indicator('x3') + [
+	"01e_ab+01O_ab+01x->01x1+01x2+01e_ab+01o_ab k=" + FAST, #Cloning Reaction
+	#Even/Odd determining Reactions
+	"01x_ab+02x2->01x_ab k=" + VERY_FAST, #Division by 2 until either one or no molecules remain. Used to determine evenness/oddness
+	"01x_ab->01e k=" + MEDIUM, #Even indivator is produced in the absence of x
+	"01e+01x2->01x2 k=" + VERY_FAST, #Even indicator is removed as long as x2 is still in the system
+	"01x_ab+01x2->01x2+01O k=" + MEDIUM, #If there is a single X2 left, then create the odd indicator
 
+	#Even odd detection is working.
+	#Intermediate simulation results (even odd detection) (10000 iterations 10 times):
+	#x = 30: ['x2: 0.0', "O_ab': 0.5", 'e: 687.0', "e_ab': 0.1", 'x1: 30.0', 'e_ab: 0.0', 'x_ab: 0.0', 'x: 0.0', 'O_ab: 1.1', 'O: 0.0', "x_ab': 0.5", 'o: 0.0', 'o_ab: 30.0']
+	#x = 31: ['x2: 1.0', "x_ab': 0.8", "O_ab': 0.3", 'O_ab: 0.0', 'x: 0.0', 'x_ab: 0.0', 'O: 315.7', 'o: 0.0', "e_ab': 0.4", 'e: 0.0', 'o_ab: 31.0', 'e_ab: 1.1', 'x1: 31.0']
+
+	#If the result is even, divide by 2
+	"01e+02x1->01e+01x3 k=" + FAST, #Divide by two
+	"01e+01x1_ab+01x3->01x+01e+01x1_ab k=" + FAST, #Once the division is done, react the x1 back into x
+
+	#If the result is odd, multiple by 3 and add one:
+	"01O+01x1->01O+03x3 k=" + FAST, #Multiply x1 by three and store it in x3
+	"01O+01x1_ab+01x2->01x3+01O+01x1_ab k=" + VERY_FAST, #Change the last x2 into x3. The system should start producing e after this step.
+	"01O+01x1_ab+01e+01x3->01x+01e+01O+01x1_ab k=" + FAST, #once x3 = 3x1 + 1 is finished, react the x3 back to x
+
+	#Clean up and prepare for the next iteration
+	"01x+01x3_abs+01e->00o k=" + FAST,
+	"01x+01x3_abs+01O->00o k=" + FAST
 ]
 p4_collatz_counts = {
-
+	'x':16
 }
 
 if __name__ == "__main__":
+	#print(statistical_call_reaction(exp_reactions,exp_counts, 10000, 100))
 	#print(statistical_call_reaction(addition_reactions,addition_counts, 1000, 100))
 	#print(statistical_call_reaction(p2_ylog2_x_reactions, p2_ylog2_x_counts, 1000, 100))
-	print(statistical_call_reaction(p3_multiplication_reactions, p3_multiplication_counts, 10000, 10))
-	#print(abs_indicator('q'))
+	#print(statistical_call_reaction(p3_multiplication_reactions, p3_multiplication_counts, 10000, 10))
+	print(statistical_call_reaction(p4_collatz_reactions, p4_collatz_counts, 1000000, 1))
