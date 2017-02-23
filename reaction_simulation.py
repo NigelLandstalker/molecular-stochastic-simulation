@@ -36,7 +36,7 @@ def can_fire(reactant_descs, counts): #Determines if a reaction can actually phy
 			can_fire_ = False
 	return can_fire_
 
-def stochastic_sim(init_counts, reaction_descs, iterations, end_conditions={}, return_intermediary_steps=False): #Runs a single stochastic simulation based on parameters
+def stochastic_sim(init_counts, reaction_descs, iterations, end_conditions=[], return_intermediary_steps=False): #Runs a single stochastic simulation based on parameters
 	#Reaction descs: ((reactant_descs), (product_descs), (k_values)). Tuple description of reaction. Reactant_descs is broken down into (coefficient, reactant_index).
 	reactant_descs = [desc[0] for desc in reaction_descs]
 	product_descs = [desc[1] for desc in reaction_descs]
@@ -51,9 +51,9 @@ def stochastic_sim(init_counts, reaction_descs, iterations, end_conditions={}, r
 		#probs = p1_probs(counts)
 		probs = reaction_probs(reactant_descs, counts, k_values)
 		#print("Reaction probs for iteration %s: %s" % (iteration, probs))
-		if probs == 'end':
-			print('Simulation finished after %s iterations' % i)
-			break
+		ending_state = [function(counts) for function in end_conditions]
+		if probs == 'end' or True in ending_state:
+			return [ending_state, i]
 
 		prob_sum = 0
 		rand = random.uniform(0,1)
@@ -80,8 +80,6 @@ def stochastic_sim(init_counts, reaction_descs, iterations, end_conditions={}, r
 		if return_intermediary_steps:
 			all_counts.append(list(counts))
 			fired_probs.append(probs[fired_reaction_index])
-	else:
-		print("Simulation reached end of allowed iterations")
 
 	if return_intermediary_steps:
 		return (all_counts, fired_probs)
@@ -113,7 +111,7 @@ def parse_reactions(reactions, counts={}, return_unique_molecules=False): #Just 
 	if return_unique_molecules:
 		return unique_molecules
 	else:
-		print("Parsed Equations: %s" % parsed_equations)
+		print("Successfully parsed equations")
 		if counts == {}:
 			return parsed_equations
 		else:
@@ -125,36 +123,3 @@ def parse_reactions(reactions, counts={}, return_unique_molecules=False): #Just 
 					print('Invalid molecule name in molecule counts')
 			return [parsed_equations, parsed_counts]
 			#Molecule count parsing happens here. Counts is a dict of keys with reactant names corresponding to the reactions above.
-
-def p1_a_analyze_outcome(init_counts, reaction_descs, trial_count, iteration_count):
-	#FIXME The conditions listed are TERMINATING CONDITIONS!
-	all_outcomes = [stochastic_sim(init_counts, reaction_descs, iteration_count) for _ in range(trial_count)]
-
-	C1_prob = len(list(filter(lambda x: x > 7, list(zip(*all_outcomes))[0]))) / trial_count
-	C2_prob = len(list(filter(lambda x: x >= 8, list(zip(*all_outcomes))[1]))) / trial_count
-	C3_prob = len(list(filter(lambda x: x < 3, list(zip(*all_outcomes))[2]))) / trial_count
-
-	print("C1_prob: %s" % C1_prob)
-	print("C2_prob: %s" % C2_prob)
-	print("C3_prob: %s" % C3_prob)
-
-def p1_b_analyze_outcome(init_counts, reaction_descs, trial_count, iteration_count):
-	#Calculates a probability distribution for each variable that contains a state and its likelyhood of occurring
-	prob_dist = {}
-	encountered_paths = set()
-	for iteration in range(trial_count):
-		states = stochastic_sim(init_counts, reaction_descs, iteration_count, False, True) #States is structured: ([counts], [fired_probs])
-		#All I really need to do is take the product of the correct index of probs and then make a set of all the possible ending configs?
-		key = str(states[0][len(states[0]) - 1])
-		value = reduce(op.mul, states[1])
-
-		if key not in prob_dist:
-			prob_dist[key] = value
-		elif str(states[0]) not in encountered_paths:
-			prob_dist[key] += value
-		encountered_paths.add(str(states[0]))
-
-	print(prob_dist)
-	print("Number of unique results: %s" % len(prob_dist.values()))
-	print("Searchspace Coverage: %s percent" % (sum(prob_dist.values()) * 100))
-	return prob_dist
