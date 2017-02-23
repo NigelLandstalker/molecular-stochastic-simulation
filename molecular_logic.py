@@ -39,7 +39,7 @@ def abs_indicator(molecule):
 		"01" + molecule + "+01" + molecule + "_ab'->01" + molecule + " k=" + FAST,
 		"02" + molecule + "_ab'->01" + molecule + "_ab'" + " k=" + FAST,
 		#buffer reactions:
-		"01" + molecule + "_ab'->01" + molecule+ "_ab k=" + SLOW,
+		"01" + molecule + "_ab'->01" + molecule + "_ab k=" + SLOW,
 		"01" + molecule + "+01" + molecule + "_ab->01" + molecule + " k=" + FAST,
 		"02" + molecule + "_ab->01" + molecule + "_ab k=" + FAST
 	]
@@ -65,7 +65,8 @@ def p1_a_analyze_outcome(trial_count, iteration_count):
 
 def p1_b_analyze_outcome(trial_count):
 	sim_input = parse_reactions(part1_equations, {'x1':6,'x2':6,'x3':6})
-	#Calculates a probability distribution for each variable that contains a state and its likelyhood of occurring
+
+	#Generating a probability distribution for each encountered output state
 	prob_dist = {}
 	encountered_paths = set()
 	for iteration in range(trial_count):
@@ -79,8 +80,11 @@ def p1_b_analyze_outcome(trial_count):
 			prob_dist[key] += value
 		encountered_paths.add(str(states[0]))
 
+	#Generating probability distribution for individual variable values.
 	end_states = [(ast.literal_eval(key), prob_dist[key]) for key in prob_dist]
 	num_prob_dist = {}
+	means = []
+	variances = []
 	for i in range(3):
 		elements = {}
 		for element in end_states:
@@ -89,6 +93,16 @@ def p1_b_analyze_outcome(trial_count):
 			else:
 				elements[element[0][i]] = element[1]
 		num_prob_dist['x' + str(i + 1)] = elements
+		mean = sum(elements.keys()) / len(elements)
+
+		variance = sum(((key - mean) ** 2)*elements[key] for key in elements)
+		print('x' + str(i + 1) + " Mean:")
+		print(mean)
+		print('x' + str(i + 1) + " Variance:")
+		print(variance)
+
+		means.append(mean)
+		variances.append(variance)
 
 		print('x' + str(i + 1) + " Probability distribution:")
 		for key, value in sorted(elements.items()):
@@ -98,9 +112,7 @@ def p1_b_analyze_outcome(trial_count):
 	print("Number of unique results: %s" % len(prob_dist.values()))
 	print("Searchspace Coverage: %s percent" % (sum(prob_dist.values()) * 100))
 
-	#individual number probability distribution:
-
-	return (prob_dist, num_prob_dist)
+	return (prob_dist, num_prob_dist, means, variances)
 
 #Part 1 Equations:
 part1_equations = [
@@ -171,12 +183,7 @@ p3_multiplication_reactions = abs_indicator("A1") + abs_indicator('B1') + abs_in
 	"01E->01C2 k=" + VERY_FAST,
 	"01F->01C2 k=" + VERY_FAST
 ]
-p3_multiplication_counts = {
-	'A1':5,
-	'A2':10,
-	'B1':15,
-	'B2':20
-}
+
 p4_gcd_reactions = abs_indicator('x2') + abs_indicator('y2') + abs_indicator('x1') + abs_indicator('y1') + abs_indicator('x1') + abs_indicator('x3') + abs_indicator('y3') + abs_indicator('x') + abs_indicator('y') + [
 	"01x3_ab+01y3_ab+01x->01x1+01x2 k=" + VERY_FAST,
 	"01x3_ab+01y3_ab+01y->01y1+01y2 k=" + VERY_FAST,
@@ -223,7 +230,7 @@ p4_collatz_counts = {
 if __name__ == "__main__":
 	#Part 1:
 	#p1_a_analyze_outcome(10000, 1000)
-	p1_b_analyze_outcome(10000)
+	#p1_b_analyze_outcome(1000000)
 
 	#Part 2:
 	#Z = y*log(x)
@@ -237,7 +244,9 @@ if __name__ == "__main__":
 	#print(statistical_call_reaction(p2_exp2_log2_x_reactions, {'x':128,'y':1,'b':10}, 1000, 100))
 
 	#Part 3:
-	#print(statistical_call_reaction(p3_multiplication_reactions, p3_multiplication_counts, 10000, 10))
+	print(statistical_call_reaction(p3_multiplication_reactions, {'A1':16,'A2':4,'B1':7,'B2':25}, 10000, 10))
+	print(statistical_call_reaction(p3_multiplication_reactions, {'A1':5,'A2':10,'B1':15,'B2':20}, 10000, 10))
+	print(statistical_call_reaction(p3_multiplication_reactions, {'A1':3,'A2':4,'B1':5,'B2':6}, 10000, 10))
 
 	#Part 4:
 	#print(statistical_call_reaction(p4_collatz_reactions, p4_collatz_counts, 1000000, 1))
