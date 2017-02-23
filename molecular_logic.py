@@ -135,17 +135,18 @@ p3_multiplication_counts = {
 	'B2':20
 }
 
-p4_gcd_reactions = [
-	"01x->01x1'+01x2 k=" + FAST,
-	"01y->01y1'+01y2 k=" + FAST,
-	"01y2+01x2->00o k=" + FAST,
+p4_gcd_reactions = abs_indicator('x2') + abs_indicator('y2') + abs_indicator('x1') + abs_indicator('y1') + abs_indicator('x1') + abs_indicator('x3') + abs_indicator('y3') + abs_indicator('x') + abs_indicator('y') + [
+	"01x3_ab+01y3_ab+01x->01x1+01x2 k=" + VERY_FAST,
+	"01x3_ab+01y3_ab+01y->01y1+01y2 k=" + VERY_FAST,
+	"01y_ab+01x_ab+01y2+01x2->00o k=" + MEDIUM,
 
 	#If y>x:
-	"01x_ab+01y1->00o k=" + FAST,
-	"01x_ab+01y2->01y3 k=" + FAST
+	#"01x2_ab+01y1->00o k=" + FAST,
+	#"01x2_ab+01y2->01y3 k=" + FAST
 ]
 p4_gcd_counts = {
-
+	'x':20,
+	'y':50
 }
 
 p4_collatz_reactions = abs_indicator('e') + abs_indicator('O') + abs_indicator('x') + abs_indicator('x1') + abs_indicator('x3') + [
@@ -171,11 +172,11 @@ p4_collatz_reactions = abs_indicator('e') + abs_indicator('O') + abs_indicator('
 	"01O+01x1_ab+01e+01x3->01x+01e+01O+01x1_ab k=" + FAST, #once x3 = 3x1 + 1 is finished, react the x3 back to x
 
 	#Clean up and prepare for the next iteration
-	"01x+01x3_abs+01e->00o k=" + FAST,
-	"01x+01x3_abs+01O->00o k=" + FAST
+	"01x+01x3_abs+01e->00o k=" + VERY_FAST,
+	"01x+01x3_abs+01O->00o k=" + VERY_FAST
 ]
 p4_collatz_counts = {
-	'x':16
+	'x':3
 }
 
 if __name__ == "__main__":
@@ -183,4 +184,5 @@ if __name__ == "__main__":
 	#print(statistical_call_reaction(addition_reactions,addition_counts, 1000, 100))
 	#print(statistical_call_reaction(p2_ylog2_x_reactions, p2_ylog2_x_counts, 1000, 100))
 	#print(statistical_call_reaction(p3_multiplication_reactions, p3_multiplication_counts, 10000, 10))
-	print(statistical_call_reaction(p4_collatz_reactions, p4_collatz_counts, 1000000, 1))
+	#print(statistical_call_reaction(p4_collatz_reactions, p4_collatz_counts, 1000000, 1))
+	print(statistical_call_reaction(p4_gcd_reactions, p4_gcd_counts, 100000, 1))
