@@ -8,21 +8,26 @@ from reaction_simulation import stochastic_sim
 import operator as op
 from functools import reduce
 import ast
+import multiprocessing
 
+PROCESSOR_CORES = 8
+
+#Defining some common rate constants
 SLOW = '1'
-MEDIUM = '100'
-FAST = '10000'
-VERY_FAST = '1000000'
+MEDIUM = '100000'
+FAST = '10000000000'
+VERY_FAST = '1000000000000000'
 
-#def call_reaction(reaction, counts, iterations):
-#	sim_input = parse_reactions(reaction, counts)
-#	output = stochastic_sim(sim_input[1], sim_input[0], iterations)
-#	return output
+def stochastic_sim_vargs(args):
+	#Used as a signature for multi core processing
+	return stochastic_sim(*args)
 
-def statistical_call_reaction(reaction, counts, iterations, trials):
+def statistical_call_reaction(reaction, counts, iterations, trials, print_output=True):
+	#
 	print("Initiating statistical reaction simulation of %s trials, with %s iterations per trial." % (trials, iterations))
 	sim_input = parse_reactions(reaction, counts)
-	outputs = [stochastic_sim(sim_input[1], sim_input[0], iterations) for _ in range(trials)]
+	with multiprocessing.Pool(processes=PROCESSOR_CORES) as p:
+		outputs = p.map(stochastic_sim_vargs, [(sim_input[1], sim_input[0], iterations) for _ in range(trials)])
 	averages = [(sum(counts) / float(trials)) for counts in list(zip(*outputs))]
 	print('Simulation finished')
 	return associate_reactants(reaction, averages)
@@ -30,7 +35,8 @@ def statistical_call_reaction(reaction, counts, iterations, trials):
 def associate_reactants(reaction, outputs): #Associates the reactants printed in the output back with their respective molecule string.
 #This function only exists because of my bad code that I don't want to change.
 	unique_molecules = parse_reactions(reaction, return_unique_molecules=True)
-	new_output = [key + ": " + str(outputs[unique_molecules[key]]) for key in unique_molecules]
+	new_output = []
+	new_output = [key + ": " + str(outputs[unique_molecules[key]]) for key in sorted(unique_molecules)]
 	return new_output
 
 def abs_indicator(molecule):
@@ -45,6 +51,9 @@ def abs_indicator(molecule):
 	]
 
 def p1_a_analyze_outcome(trial_count, iteration_count):
+	#Takes in a number of trials and a number of iterations per trial.
+	#iteration_count speciies a maximum number of iterations. Most simulations will end well before that number is reached.
+	#Returns the probability of each condition occurring according to the homework assignment description.
 	end_conditions = [
 		lambda x: x[0] > 7,
 		lambda x: x[1] >= 8,
@@ -64,6 +73,8 @@ def p1_a_analyze_outcome(trial_count, iteration_count):
 	return (condition_averages, average_halt_iterations)
 
 def p1_b_analyze_outcome(trial_count):
+	#Generates probability distributions for the simulator output up to 5 iterations.
+	#Trial count specifies the number of 5-iteration reaction runs to simulate.
 	sim_input = parse_reactions(part1_equations, {'x1':6,'x2':6,'x3':6})
 
 	#Generating a probability distribution for each encountered output state
@@ -113,6 +124,11 @@ def p1_b_analyze_outcome(trial_count):
 	print("Searchspace Coverage: %s percent" % (sum(prob_dist.values()) * 100))
 
 	return (prob_dist, num_prob_dist, means, variances)
+
+#REACTION EQUATION SECTION:
+#This section is where I defined the reaction equations for my system to test.
+#The reactions equations are written as lists of strings in the format: 01a+02b->01c k=1 (a + b --> c with k = 1)
+#Absence indicators are added by calling my absence indicator function above.
 
 #Part 1 Equations:
 part1_equations = [
@@ -184,70 +200,57 @@ p3_multiplication_reactions = abs_indicator("A1") + abs_indicator('B1') + abs_in
 	"01F->01C2 k=" + VERY_FAST
 ]
 
-p4_gcd_reactions = abs_indicator('x2') + abs_indicator('y2') + abs_indicator('x1') + abs_indicator('y1') + abs_indicator('x1') + abs_indicator('x3') + abs_indicator('y3') + abs_indicator('x') + abs_indicator('y') + [
-	"01x3_ab+01y3_ab+01x->01x1+01x2 k=" + VERY_FAST,
-	"01x3_ab+01y3_ab+01y->01y1+01y2 k=" + VERY_FAST,
-	"01y_ab+01x_ab+01y2+01x2->00o k=" + MEDIUM,
-
-	#If y>x:
-	#"01x2_ab+01y1->00o k=" + FAST,
-	#"01x2_ab+01y2->01y3 k=" + FAST
-]
-p4_gcd_counts = {
-	'x':20,
-	'y':50
-}
 p4_collatz_reactions = abs_indicator('e') + abs_indicator('O') + abs_indicator('x') + abs_indicator('x1') + abs_indicator('x3') + [
-	"01e_ab+01O_ab+01x->01x1+01x2+01e_ab+01o_ab k=" + FAST, #Cloning Reaction
+	"01e_ab+01O_ab+01x->01x1+01x2+01e_ab+01O_ab k=" + MEDIUM, #Cloning Reaction
 	#Even/Odd determining Reactions
-	"01x_ab+02x2->01x_ab k=" + VERY_FAST, #Division by 2 until either one or no molecules remain. Used to determine evenness/oddness
-	"01x_ab->01e k=" + MEDIUM, #Even indivator is produced in the absence of x
-	"01e+01x2->01x2 k=" + VERY_FAST, #Even indicator is removed as long as x2 is still in the system
-	"01x_ab+01x2->01x2+01O k=" + MEDIUM, #If there is a single X2 left, then create the odd indicator
-
-	#Even odd detection is working.
-	#Intermediate simulation results (even odd detection) (10000 iterations 10 times):
-	#x = 30: ['x2: 0.0', "O_ab': 0.5", 'e: 687.0', "e_ab': 0.1", 'x1: 30.0', 'e_ab: 0.0', 'x_ab: 0.0', 'x: 0.0', 'O_ab: 1.1', 'O: 0.0', "x_ab': 0.5", 'o: 0.0', 'o_ab: 30.0']
-	#x = 31: ['x2: 1.0', "x_ab': 0.8", "O_ab': 0.3", 'O_ab: 0.0', 'x: 0.0', 'x_ab: 0.0', 'O: 315.7', 'o: 0.0', "e_ab': 0.4", 'e: 0.0', 'o_ab: 31.0', 'e_ab: 1.1', 'x1: 31.0']
+	"01x_ab+02x2->01x_ab k=" + FAST, #Division by 2 until either one or no molecules remain. Used to determine evenness/oddness
+	"01x_ab->01e k=" + SLOW, #Even indivator is produced in the absence of x
+	"01e+01x2->01x2 k=" + FAST, #Even indicator is removed as long as x2 is still in the system
+	"01x_ab+01x2->01x2+01O k=" + SLOW, #If there is a single X2 left, then create the odd indicator
 
 	#If the result is even, divide by 2
-	"01e+02x1->01e+01x3 k=" + FAST, #Divide by two
-	"01e+01x1_ab+01x3->01x+01e+01x1_ab k=" + FAST, #Once the division is done, react the x1 back into x
+	"01e+02x1->01e+01x3 k=" + MEDIUM, #Divide by two
+	"01e+01x1_ab+01x3->01x+01e+01x1_ab k=" + MEDIUM, #Once the division is done, react the x1 back into x
 
 	#If the result is odd, multiple by 3 and add one:
-	"01O+01x1->01O+03x3 k=" + FAST, #Multiply x1 by three and store it in x3
-	"01O+01x1_ab+01x2->01x3+01O+01x1_ab k=" + VERY_FAST, #Change the last x2 into x3. The system should start producing e after this step.
-	"01O+01x1_ab+01e+01x3->01x+01e+01O+01x1_ab k=" + FAST, #once x3 = 3x1 + 1 is finished, react the x3 back to x
+	"01O+01x1->01O+03x3 k=" + SLOW, #Multiply x1 by three and store it in x3
+	"01O+01x1_ab+01x2->01x3+01O+01x1_ab k=" + FAST, #Change the last x2 into x3. The system should start producing e after this step.
+	"01O+01x1_ab+01e+01x3->01x+01e+01O+01x1_ab k=" + SLOW, #once x3 = 3x1 + 1 is finished, react the x3 back to x
 
 	#Clean up and prepare for the next iteration
-	"01x+01x3_abs+01e->00o k=" + VERY_FAST,
-	"01x+01x3_abs+01O->00o k=" + VERY_FAST
+	"01x+01x3_ab+01e->01x3_ab+01x k=" + MEDIUM,
+	"01x+01x3_ab+01O->01x3_ab+01x k=" + MEDIUM,
 ]
-p4_collatz_counts = {
-	'x':3
-}
+
 
 if __name__ == "__main__":
 	#Part 1:
-	#p1_a_analyze_outcome(10000, 1000)
-	#p1_b_analyze_outcome(1000000)
+	print("PART 1")
+	p1_a_analyze_outcome(10000, 1000)
+	p1_b_analyze_outcome(10000)
 
 	#Part 2:
 	#Z = y*log(x)
-	#print(statistical_call_reaction(p2_ylog2_x_reactions, {'x':256, 'y':10, 'b':10}, 1000, 100))
-	#print(statistical_call_reaction(p2_ylog2_x_reactions, {'x':16, 'y':100, 'b':10}, 1000, 100))
-	#print(statistical_call_reaction(p2_ylog2_x_reactions, {'x':32, 'y':15, 'b':10}, 1000, 100))
+	print("PART 2a")
+	print(statistical_call_reaction(p2_ylog2_x_reactions, {'x':256, 'y':10, 'b':10}, 1000, 100))
+	print(statistical_call_reaction(p2_ylog2_x_reactions, {'x':16, 'y':100, 'b':10}, 1000, 100))
+	print(statistical_call_reaction(p2_ylog2_x_reactions, {'x':32, 'y':15, 'b':10}, 1000, 100))
 
 	#Z = 2^log(x)
-	#print(statistical_call_reaction(p2_exp2_log2_x_reactions, {'x':32,'y':1,'b':10}, 1000, 100))
-	#print(statistical_call_reaction(p2_exp2_log2_x_reactions, {'x':64,'y':1,'b':10}, 1000, 100))
-	#print(statistical_call_reaction(p2_exp2_log2_x_reactions, {'x':128,'y':1,'b':10}, 1000, 100))
+	print("PART 2b")
+	print(statistical_call_reaction(p2_exp2_log2_x_reactions, {'x':32,'y':1,'b':10}, 1000, 100))
+	print(statistical_call_reaction(p2_exp2_log2_x_reactions, {'x':64,'y':1,'b':10}, 1000, 100))
+	print(statistical_call_reaction(p2_exp2_log2_x_reactions, {'x':128,'y':1,'b':10}, 1000, 100))
 
 	#Part 3:
+	print("PART 3")
 	print(statistical_call_reaction(p3_multiplication_reactions, {'A1':16,'A2':4,'B1':7,'B2':25}, 10000, 10))
 	print(statistical_call_reaction(p3_multiplication_reactions, {'A1':5,'A2':10,'B1':15,'B2':20}, 10000, 10))
 	print(statistical_call_reaction(p3_multiplication_reactions, {'A1':3,'A2':4,'B1':5,'B2':6}, 10000, 10))
 
 	#Part 4:
-	#print(statistical_call_reaction(p4_collatz_reactions, p4_collatz_counts, 1000000, 1))
-	#print(statistical_call_reaction(p4_gcd_reactions, p4_gcd_counts, 100000, 1))
+	#Collatz Conjecture:
+	print("PART 4")
+	statistical_call_reaction(p4_collatz_reactions, {'x':3}, 10000, 1)
+	statistical_call_reaction(p4_collatz_reactions, {'x':52}, 10000, 1)
+	statistical_call_reaction(p4_collatz_reactions, {'x':27}, 50000, 1)

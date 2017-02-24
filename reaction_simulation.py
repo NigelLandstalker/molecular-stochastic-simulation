@@ -7,11 +7,14 @@ import operator as op
 from functools import reduce
 
 def k_choose_n(k, n):
+	#This function takes two arguments k and n and returns k choose n.
 	return math.factorial(k) / (math.factorial(n) * math.factorial(k - n))
 
-def reaction_probs(reactant_descs, counts, k_values): #Returns the probability of a reaction happening
-	#Reactant desc: tuple containing: ((r1 coefficient, r1 index), (r2 coefficient, r2 index), ..., (rn coefficient, rn index), k_value)
+def reaction_probs(reactant_descs, counts, k_values):
+	#Returns the probability of a reaction happening based on the reaction descriptions, the number of molecules of each reactant, and their respective k-values.
+	#Reactant desc: tuple containing: ((r1 coefficient, r1 index), (r2 coefficient, r2 index), ..., (rn coefficient, rn index))
 	#index gives the molecule type, while coefficient gives the number of molecules requied.
+	#Function reaturns a list of probabilities between 0 and 1
 	alphas = []
 	for index, desc in enumerate(reactant_descs):
 		if can_fire(desc, counts):
@@ -25,7 +28,8 @@ def reaction_probs(reactant_descs, counts, k_values): #Returns the probability o
 		return 'end'
 	return [alphas[i] / sum(alphas) for i in range(len(alphas))]
 
-def can_fire(reactant_descs, counts): #Determines if a reaction can actually physically happen given the number of remaining molecules in the systen and the given reaction's chemical equation.
+def can_fire(reactant_descs, counts):
+	#Determines if a reaction can actually physically happen given the number of remaining molecules in the systen and the given reaction's chemical equation.
 	can_fire_ = True
 	if type(reactant_descs[0]) == tuple:
 		for reactant in reactant_descs:
@@ -36,7 +40,8 @@ def can_fire(reactant_descs, counts): #Determines if a reaction can actually phy
 			can_fire_ = False
 	return can_fire_
 
-def stochastic_sim(init_counts, reaction_descs, iterations, end_conditions=[], return_intermediary_steps=False): #Runs a single stochastic simulation based on parameters
+def stochastic_sim(init_counts, reaction_descs, iterations, end_conditions=[], return_intermediary_steps=False):
+	#Runs a single stochastic simulation based on parameters
 	#Reaction descs: ((reactant_descs), (product_descs), (k_values)). Tuple description of reaction. Reactant_descs is broken down into (coefficient, reactant_index).
 	reactant_descs = [desc[0] for desc in reaction_descs]
 	product_descs = [desc[1] for desc in reaction_descs]
@@ -46,6 +51,9 @@ def stochastic_sim(init_counts, reaction_descs, iterations, end_conditions=[], r
 		fired_probs = [] #Gives a list of the used
 		all_counts = []
 
+	last_num = 0
+	last_num_freq = 0
+	print_outs = []
 	for i in range(iterations):
 		#print("Molecule counts for iteration %s: %s" % (iteration, counts))
 		#probs = p1_probs(counts)
@@ -55,6 +63,7 @@ def stochastic_sim(init_counts, reaction_descs, iterations, end_conditions=[], r
 		if probs == 'end' or True in ending_state:
 			return [ending_state, i]
 
+		#Determine which reaction to fire:
 		prob_sum = 0
 		rand = random.uniform(0,1)
 		for index, pb in enumerate(probs): #Generate a list of thresholded probabilities. For example: for probs 1/5, 2/5, 2/5, these would be: 1/5, 3/5, 5/5. Selection of a real number between 0 and 1 gives precisely one of the reactions
@@ -65,6 +74,21 @@ def stochastic_sim(init_counts, reaction_descs, iterations, end_conditions=[], r
 
 		fired_reactants = reactant_descs[fired_reaction_index]
 		fired_products = product_descs[fired_reaction_index]
+
+		#Print some stuff about the reactions (used for collatz conjecture)
+		#if counts[8] > 0:
+			#if counts[8] == last_num:
+				#last_num_freq += 1
+			#else:
+				#last_num_freq = 0
+
+			#if last_num_freq > 8:
+				#if counts[8] not in print_outs:
+					#print_outs.append(counts[8])
+					#print(counts[8])
+				#last_num_freq = 0
+			#last_num = counts[8]
+
 		if type(fired_reactants[0]) == tuple:
 			for reactant in fired_reactants:
 				counts[reactant[1]] -= reactant[0]
@@ -89,6 +113,8 @@ def stochastic_sim(init_counts, reaction_descs, iterations, end_conditions=[], r
 def parse_reactions(reactions, counts={}, return_unique_molecules=False): #Just to make things easier
 	#Reactions is a list of strings, each string corresponding to a reaction in the format: 02x1+03x2->01x2,k=1 where x is any alpha character
 	#Reactions must completely desribe the chemical system desired! The parser assigns unique values to each molecular element.
+	#The parser returns a list of parsed equations that can be used by the functions above.
+
 	unique_molecules = {}
 	parsed_equations = []
 	for string in reactions:
